@@ -8,7 +8,7 @@ How to use it:
 javac com/craftinginterpreters/lox/*.java
 ```
 
-Use the interpreter:
+Use the interpreter (after compiling with the above):
 
 ```bash
 java com.craftinginterpreters.lox.Lox

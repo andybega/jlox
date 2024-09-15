@@ -1,7 +1,7 @@
 // Generate the AST .java source code files.
 // Usage:
-//   javac com/craftinginterpreters/tool/GenerateAST.java
-//   java com/craftinginterpreters/tool/GenerateAST com/craftinginterpreters/lox
+//   javac com/craftinginterpreters/tool/GenerateAst.java
+//   java com/craftinginterpreters/tool/GenerateAst com/craftinginterpreters/lox
 //
 
 package com.craftinginterpreters.tool;
@@ -24,6 +24,11 @@ public class GenerateAst {
       "Grouping : Expr expression",
       "Literal  : Object value",
       "Unary    : Token operator, Expr right"
+    ));
+
+    defineAst(outputDir, "Stmt", Arrays.asList(
+      "Expression : Expr expression",
+      "Print      : Expr expression"
     ));
   }
 
