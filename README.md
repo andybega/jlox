@@ -1,15 +1,25 @@
 # jlox
 
-Java Lox implementation for Crafting Interpreters
+Java Lox implementation, following the excellent and beautifully crafted book [Crafting Interpreters](https://craftinginterpreters.com) by Robert Nystrom. 
 
-How to use it: 
+## Usage
+
+Compile first:
 
 ```bash
 javac com/craftinginterpreters/lox/*.java
 ```
 
-Use the interpreter (after compiling with the above):
+Then, to use the interactive interpreter:
 
 ```bash
 java com.craftinginterpreters.lox.Lox
+```
+
+(The interactive interpreter doesn't allow code blocks over multiple lines.)
+
+To run script files:
+
+```bash
+java com.craftinginterpreters.lox.Lox tests/hello-world.lox
 ```
