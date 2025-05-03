@@ -1,29 +1,36 @@
 package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 class Interpreter implements Expr.Visitor<Object>,
-                             Stmt.Visitor<Void> {
-    
+        Stmt.Visitor<Void> {
+
     // Environment to hold variables
     final Environment globals = new Environment();
     private Environment environment = globals;
+    private final Map<Expr, Integer> locals = new HashMap<>(); // Store resolver results
 
     // Primitive functions
     Interpreter() {
         globals.define("clock", new LoxCallable() {
             @Override
-            public int arity() { return 0; }
-        
+            public int arity() {
+                return 0;
+            }
+
             @Override
             public Object call(Interpreter interpreter,
-                                List<Object> arguments) {
-                return (double)System.currentTimeMillis() / 1000.0;
+                    List<Object> arguments) {
+                return (double) System.currentTimeMillis() / 1000.0;
             }
-        
+
             @Override
-            public String toString() { return "<native fn>"; }
+            public String toString() {
+                return "<native fn>";
+            }
         });
     }
 
@@ -37,9 +44,9 @@ class Interpreter implements Expr.Visitor<Object>,
             Lox.runtimeError(error);
         }
     }
-  
-    // For literals like 1 or 'cat', we can just take the value that we already 
-    // produced during scanning. 
+
+    // For literals like 1 or 'cat', we can just take the value that we already
+    // produced during scanning.
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
@@ -50,9 +57,11 @@ class Interpreter implements Expr.Visitor<Object>,
         Object left = evaluate(expr.left);
 
         if (expr.operator.type == TokenType.OR) {
-            if (isTruthy(left)) return left;
+            if (isTruthy(left))
+                return left;
         } else {
-            if (!isTruthy(left)) return left;
+            if (!isTruthy(left))
+                return left;
         }
 
         return evaluate(expr.right);
@@ -68,7 +77,7 @@ class Interpreter implements Expr.Visitor<Object>,
                 return !isTruthy(right);
             case MINUS:
                 checkNumberOperand(expr.operator, right);
-                return -(double)right;
+                return -(double) right;
         }
 
         // Unreachable.
@@ -78,28 +87,43 @@ class Interpreter implements Expr.Visitor<Object>,
     // Variable expression
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return lookUpVariable(expr.name, expr);
+    }
+
+    // Look up variable in the environment we got from the resolver
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
     }
 
     // false and nil are false, everything else is true
     private boolean isTruthy(Object object) {
-        if (object == null) return false;
-        if (object instanceof Boolean) return (boolean)object;
+        if (object == null)
+            return false;
+        if (object instanceof Boolean)
+            return (boolean) object;
         return true;
     }
 
     // Special implementation for equality tests in the binary expression method
     // below
     private boolean isEqual(Object a, Object b) {
-        if (a == null && b == null) return true;
-        if (a == null) return false;
+        if (a == null && b == null)
+            return true;
+        if (a == null)
+            return false;
 
         return a.equals(b);
     }
 
     // Convert literal to string
     private String stringify(Object object) {
-        if (object == null) return "nil";
+        if (object == null)
+            return "nil";
 
         if (object instanceof Double) {
             String text = object.toString();
@@ -126,6 +150,11 @@ class Interpreter implements Expr.Visitor<Object>,
         stmt.accept(this);
     }
 
+    // Used by the resolver
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
+    }
+
     // Code blocks {}
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
@@ -134,7 +163,7 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     void executeBlock(List<Stmt> statements,
-                    Environment environment) {
+            Environment environment) {
         Environment previous = this.environment;
         try {
             this.environment = environment;
@@ -145,7 +174,7 @@ class Interpreter implements Expr.Visitor<Object>,
         } finally {
             this.environment = previous;
         }
-    } 
+    }
 
     // Expression statements
     @Override
@@ -182,7 +211,8 @@ class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
         Object value = null;
-        if (stmt.value != null) value = evaluate(stmt.value);
+        if (stmt.value != null)
+            value = evaluate(stmt.value);
 
         throw new Return(value);
     }
@@ -209,7 +239,12 @@ class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            globals.assign(expr.name, value);
+        }
         return value;
     }
 
@@ -217,45 +252,45 @@ class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
-        Object right = evaluate(expr.right); 
+        Object right = evaluate(expr.right);
 
         switch (expr.operator.type) {
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left > (double)right;
+                return (double) left > (double) right;
             case GREATER_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left >= (double)right;
+                return (double) left >= (double) right;
             case LESS:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left < (double)right;
+                return (double) left < (double) right;
             case LESS_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left <= (double)right;
-            case BANG_EQUAL: 
+                return (double) left <= (double) right;
+            case BANG_EQUAL:
                 return !isEqual(left, right);
-            case EQUAL_EQUAL: 
+            case EQUAL_EQUAL:
                 return isEqual(left, right);
             case MINUS:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left - (double)right;
+                return (double) left - (double) right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
-                    return (double)left + (double)right;
-                } 
+                    return (double) left + (double) right;
+                }
 
                 if (left instanceof String && right instanceof String) {
-                    return (String)left + (String)right;
+                    return (String) left + (String) right;
                 }
 
                 throw new RuntimeError(expr.operator,
-                    "Operands must be two numbers or two strings.");
+                        "Operands must be two numbers or two strings.");
             case SLASH:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left / (double)right;
+                return (double) left / (double) right;
             case STAR:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left * (double)right;
+                return (double) left * (double) right;
         }
 
         // Unreachable.
@@ -268,23 +303,23 @@ class Interpreter implements Expr.Visitor<Object>,
         Object callee = evaluate(expr.callee);
 
         List<Object> arguments = new ArrayList<>();
-        for (Expr argument : expr.arguments) { 
+        for (Expr argument : expr.arguments) {
             arguments.add(evaluate(argument));
         }
 
         // Throw error for non-callable objects, like "a string"()
         if (!(callee instanceof LoxCallable)) {
             throw new RuntimeError(expr.paren,
-                "Can only call functions and classes.");
+                    "Can only call functions and classes.");
         }
 
-        LoxCallable function = (LoxCallable)callee;
-        
+        LoxCallable function = (LoxCallable) callee;
+
         // Check that we have the right number of arguments
         if (arguments.size() != function.arity()) {
             throw new RuntimeError(expr.paren, "Expected " +
-                function.arity() + " arguments but got " +
-                arguments.size() + ".");
+                    function.arity() + " arguments but got " +
+                    arguments.size() + ".");
         }
 
         return function.call(this, arguments);
@@ -292,14 +327,16 @@ class Interpreter implements Expr.Visitor<Object>,
 
     // Runtime error checking for number type
     private void checkNumberOperand(Token operator, Object operand) {
-        if (operand instanceof Double) return;
+        if (operand instanceof Double)
+            return;
         throw new RuntimeError(operator, "Operand must be a number.");
     }
 
     private void checkNumberOperands(Token operator,
-                                    Object left, Object right) {
-        if (left instanceof Double && right instanceof Double) return;
-      
+            Object left, Object right) {
+        if (left instanceof Double && right instanceof Double)
+            return;
+
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
 

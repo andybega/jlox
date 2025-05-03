@@ -10,13 +10,13 @@ import java.util.List;
 
 public class Lox {
     private static final Interpreter interpreter = new Interpreter();
-    static boolean hadError = false; 
+    static boolean hadError = false;
     static boolean hadRuntimeError = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
             System.out.println("Usage: jlox [script]");
-            System.exit(64); 
+            System.exit(64);
         } else if (args.length == 1) {
             runFile(args[0]);
         } else {
@@ -29,18 +29,21 @@ public class Lox {
         run(new String(bytes, Charset.defaultCharset()));
 
         // Indicate an error in the exit code.
-        if (hadError) System.exit(65);
-        if (hadRuntimeError) System.exit(70);
+        if (hadError)
+            System.exit(65);
+        if (hadRuntimeError)
+            System.exit(70);
     }
 
     private static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
-        for (;;) { 
+        for (;;) {
             System.out.print("> ");
-        String line = reader.readLine();
-        if (line == null) break;
+            String line = reader.readLine();
+            if (line == null)
+                break;
             run(line);
             hadError = false;
         }
@@ -54,10 +57,19 @@ public class Lox {
         List<Stmt> statements = parser.parse();
 
         // Stop if there was a syntax error.
-        if (hadError) return;
+        if (hadError)
+            return;
+
+        // Resolve variables
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        // Stop if there was a resolution error.
+        if (hadError)
+            return;
 
         // Temp code from Chapter 6 that just prints the AST
-        //System.out.println(new AstPrinter().print(expression));
+        // System.out.println(new AstPrinter().print(expression));
         interpreter.interpret(statements);
     }
 
@@ -66,10 +78,9 @@ public class Lox {
     }
 
     private static void report(
-        int line, 
-        String where,
-        String message
-    ) {
+            int line,
+            String where,
+            String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;
     }
@@ -84,13 +95,7 @@ public class Lox {
 
     static void runtimeError(RuntimeError error) {
         System.err.println(error.getMessage() +
-            "\n[line " + error.token.line + "]");
+                "\n[line " + error.token.line + "]");
         hadRuntimeError = true;
     }
 }
-
-
-
-
-
-
