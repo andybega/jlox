@@ -65,7 +65,7 @@ public class Lox {
         resolver.resolve(statements);
 
         // Stop if there was a resolution error.
-        if (hadError)
+        if (hadError) 
             return;
 
         // Temp code from Chapter 6 that just prints the AST

@@ -1,3 +1,8 @@
+// After the early chapters the book doesn't update this anymore. 
+// I didn't remove it, but to keep things compiling, one needs to add methods
+// for the expression visitor method. 
+// https://github.com/munificent/craftinginterpreters/blob/master/java/com/craftinginterpreters/lox/AstPrinter.java
+
 package com.craftinginterpreters.lox;
 
 import java.util.List;
@@ -19,8 +24,19 @@ class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitGetExpr(Expr.Get expr) {
+        return parenthesize2(".", expr.object, expr.name.lexeme);
+    }
+
+    @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
         return parenthesize("group", expr.expression);
+    }
+
+    @Override
+    public String visitSetExpr(Expr.Set expr) {
+        return parenthesize2("=",
+            expr.object, expr.name.lexeme, expr.value);
     }
 
     @Override

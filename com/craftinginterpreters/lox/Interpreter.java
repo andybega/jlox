@@ -45,123 +45,6 @@ class Interpreter implements Expr.Visitor<Object>,
         }
     }
 
-    // For literals like 1 or 'cat', we can just take the value that we already
-    // produced during scanning.
-    @Override
-    public Object visitLiteralExpr(Expr.Literal expr) {
-        return expr.value;
-    }
-
-    @Override
-    public Object visitLogicalExpr(Expr.Logical expr) {
-        Object left = evaluate(expr.left);
-
-        if (expr.operator.type == TokenType.OR) {
-            if (isTruthy(left))
-                return left;
-        } else {
-            if (!isTruthy(left))
-                return left;
-        }
-
-        return evaluate(expr.right);
-    }
-
-    // Unary expressions
-    @Override
-    public Object visitUnaryExpr(Expr.Unary expr) {
-        Object right = evaluate(expr.right);
-
-        switch (expr.operator.type) {
-            case BANG:
-                return !isTruthy(right);
-            case MINUS:
-                checkNumberOperand(expr.operator, right);
-                return -(double) right;
-        }
-
-        // Unreachable.
-        return null;
-    }
-
-    // Variable expression
-    @Override
-    public Object visitVariableExpr(Expr.Variable expr) {
-        return lookUpVariable(expr.name, expr);
-    }
-
-    // Look up variable in the environment we got from the resolver
-    private Object lookUpVariable(Token name, Expr expr) {
-        Integer distance = locals.get(expr);
-        if (distance != null) {
-            return environment.getAt(distance, name.lexeme);
-        } else {
-            return globals.get(name);
-        }
-    }
-
-    // false and nil are false, everything else is true
-    private boolean isTruthy(Object object) {
-        if (object == null)
-            return false;
-        if (object instanceof Boolean)
-            return (boolean) object;
-        return true;
-    }
-
-    // Special implementation for equality tests in the binary expression method
-    // below
-    private boolean isEqual(Object a, Object b) {
-        if (a == null && b == null)
-            return true;
-        if (a == null)
-            return false;
-
-        return a.equals(b);
-    }
-
-    // Convert literal to string
-    private String stringify(Object object) {
-        if (object == null)
-            return "nil";
-
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                text = text.substring(0, text.length() - 2);
-            }
-            return text;
-        }
-
-        return object.toString();
-    }
-
-    // Parentheses
-    @Override
-    public Object visitGroupingExpr(Expr.Grouping expr) {
-        return evaluate(expr.expression);
-    }
-
-    private Object evaluate(Expr expr) {
-        return expr.accept(this);
-    }
-
-    private void execute(Stmt stmt) {
-        stmt.accept(this);
-    }
-
-    // Used by the resolver
-    void resolve(Expr expr, int depth) {
-        locals.put(expr, depth);
-    }
-
-    // Code blocks {}
-    @Override
-    public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.statements, new Environment(environment));
-        return null;
-    }
-
     void executeBlock(List<Stmt> statements,
             Environment environment) {
         Environment previous = this.environment;
@@ -174,6 +57,37 @@ class Interpreter implements Expr.Visitor<Object>,
         } finally {
             this.environment = previous;
         }
+    }
+
+    // Used by the resolver
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
+    }
+
+    //
+    //  Methods for statements
+    //
+
+    // Code blocks {}
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        environment.define(stmt.name.lexeme, null);
+        
+        Map<String, LoxFunction> methods = new HashMap<>();
+        for (Stmt.Function method : stmt.methods) {
+            LoxFunction function = new LoxFunction(method, environment);
+            methods.put(method.name.lexeme, function);
+        }
+
+        LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
+        environment.assign(stmt.name, klass);
+        return null;
     }
 
     // Expression statements
@@ -236,9 +150,14 @@ class Interpreter implements Expr.Visitor<Object>,
         return null;
     }
 
+    //
+    //  Methods for expressions
+    //
+
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
+        
         Integer distance = locals.get(expr);
         if (distance != null) {
             environment.assignAt(distance, expr.name, value);
@@ -297,7 +216,7 @@ class Interpreter implements Expr.Visitor<Object>,
         return null;
     }
 
-    // Call
+        // Call
     @Override
     public Object visitCallExpr(Expr.Call expr) {
         Object callee = evaluate(expr.callee);
@@ -323,6 +242,140 @@ class Interpreter implements Expr.Visitor<Object>,
         }
 
         return function.call(this, arguments);
+    }
+
+    @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        Object object = evaluate(expr.object);
+        if (object instanceof LoxInstance) {
+            return ((LoxInstance) object).get(expr.name);
+        }
+
+        throw new RuntimeError(expr.name,
+            "Only instances have properties.");
+    }
+
+    // Parentheses
+    @Override
+    public Object visitGroupingExpr(Expr.Grouping expr) {
+        return evaluate(expr.expression);
+    }
+
+    // For literals like 1 or 'cat', we can just take the value that we already
+    // produced during scanning.
+    @Override
+    public Object visitLiteralExpr(Expr.Literal expr) {
+        return expr.value;
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left))
+                return left;
+        } else {
+            if (!isTruthy(left))
+                return left;
+        }
+
+        return evaluate(expr.right);
+    }
+
+    @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        Object object = evaluate(expr.object);
+
+        if (!(object instanceof LoxInstance)) { 
+            throw new RuntimeError(expr.name,
+                             "Only instances have fields.");
+        }
+
+        Object value = evaluate(expr.value);
+        ((LoxInstance)object).set(expr.name, value);
+        return value;
+    }
+
+    // Variable expression
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return lookUpVariable(expr.name, expr);
+    }
+
+    // Unary expressions
+    @Override
+    public Object visitUnaryExpr(Expr.Unary expr) {
+        Object right = evaluate(expr.right);
+
+        switch (expr.operator.type) {
+            case BANG:
+                return !isTruthy(right);
+            case MINUS:
+                checkNumberOperand(expr.operator, right);
+                return -(double) right;
+        }
+
+        // Unreachable.
+        return null;
+    }
+
+    //
+    //  Private methods
+    //
+
+    private Object evaluate(Expr expr) {
+        return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    // Look up variable in the environment we got from the resolver
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
+    }
+
+    // false and nil are false, everything else is true
+    private boolean isTruthy(Object object) {
+        if (object == null)
+            return false;
+        if (object instanceof Boolean)
+            return (boolean) object;
+        return true;
+    }
+
+    // Special implementation for equality tests in the binary expression method
+    // below
+    private boolean isEqual(Object a, Object b) {
+        if (a == null && b == null)
+            return true;
+        if (a == null)
+            return false;
+
+        return a.equals(b);
+    }
+
+    // Convert literal to string
+    private String stringify(Object object) {
+        if (object == null)
+            return "nil";
+
+        if (object instanceof Double) {
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                text = text.substring(0, text.length() - 2);
+            }
+            return text;
+        }
+
+        return object.toString();
     }
 
     // Runtime error checking for number type
