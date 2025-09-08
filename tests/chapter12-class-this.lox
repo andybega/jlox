@@ -1,5 +1,5 @@
 // test 3 of x, end of section 12.6.0
-// java com.craftinginterpreters.lox.Lox tests/chapter11-class-this.lox
+// java com.craftinginterpreters.lox.Lox tests/chapter12-class-this.lox
 // Test for `this` in classes
 class Cake {
   taste() {

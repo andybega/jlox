@@ -1,5 +1,5 @@
 // test 1 of x
-// java com.craftinginterpreters.lox.Lox tests/chapter11-class-hello.lox
+// java com.craftinginterpreters.lox.Lox tests/chapter12-class-hello.lox
 class DevonshireCream {
     serveOn() {
         return "Scones";

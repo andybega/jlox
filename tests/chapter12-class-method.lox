@@ -1,5 +1,5 @@
 // test 2 of x, end of section 12.5
-// java com.craftinginterpreters.lox.Lox tests/chapter11-class-method.lox
+// java com.craftinginterpreters.lox.Lox tests/chapter12-class-method.lox
 // After implementing methods, this tests them out
 class Bacon {
   eat() {
