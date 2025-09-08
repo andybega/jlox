@@ -1,0 +1,20 @@
+// test 2 of x, end of section 13.2
+// java com.craftinginterpreters.lox.Lox tests/chapter13-inheritance-super.lox
+// Add super and thus a way to call superclass methods from the subclass
+// Should print:
+// Fry until golden brown.
+// Pipe full of custard and coat with chocolate.
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {
+  cook() {
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();

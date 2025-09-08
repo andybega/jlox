@@ -1,0 +1,12 @@
+// test 1 of x, end of section 13.2
+// java com.craftinginterpreters.lox.Lox tests/chapter13-inheritance-methods.lox
+// Test for method inheritance
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {}
+
+BostonCream().cook();
