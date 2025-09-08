@@ -1,0 +1,13 @@
+// test 3 of x, end of section 12.6.0
+// java com.craftinginterpreters.lox.Lox tests/chapter11-class-this.lox
+// Test for `this` in classes
+class Cake {
+  taste() {
+    var adjective = "delicious";
+    print "The " + this.flavor + " cake is " + adjective + "!";
+  }
+}
+
+var cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // Prints "The German chocolate cake is delicious!".
