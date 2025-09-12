@@ -19,6 +19,8 @@ public class GenerateAst {
         }
         String outputDir = args[0];
 
+        // The meaning here is this:
+        // type of expression : fields that the expression object contains
         defineAst(outputDir, "Expr", Arrays.asList(
             "Assign   : Token name, Expr value",
             "Binary   : Expr left, Token operator, Expr right",

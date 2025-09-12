@@ -1,4 +1,4 @@
-// Resolver to handle variable resolutin.
+// Resolver to handle variable resolution.
 // Introduced in Chapter 11. 
 
 package com.craftinginterpreters.lox;
@@ -230,7 +230,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                 "Can't use 'super' outside of a class.");
         } else if (currentClass != ClassType.SUBCLASS) {
             Lox.error(expr.keyword,
-            "Can't use 'super' in a class with no superclass.");
+                "Can't use 'super' in a class with no superclass.");
         }
 
         resolveLocal(expr, expr.keyword);
